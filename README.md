@@ -1,5 +1,5 @@
-pdf.js-listview
-===============
+pdfListView
+===========
 
 *This is work in progress.*
 
