@@ -50,7 +50,7 @@ Document.prototype.loadPages = function(pdfDocument) {
     var pagesPromise = PDFJS.Promise.all(pagePromises);
     pagesPromise.thenThis(this, function(promisedPages) {
         this.pages = promisedPages.map(function(pdfPage) {
-            return new PDFPage(pdfPage);
+            return new Page(pdfPage);
         });
 
         this.initialized.resolve();
@@ -339,14 +339,14 @@ PageView.prototype = {
  * An abstraction around the raw page object of PDF.JS, that also handles the
  * rendering logic of (maybe multiple) pageView(s) that are based on this page.
  */
-function PDFPage(pdfPage, number) {
+function Page(pdfPage, number) {
     this.number = number;
     this.pdfPage = pdfPage;
 
     this.renderContextList = {};
 }
 
-PDFPage.prototype = {
+Page.prototype = {
     render: function(pageView, renderController) {
         var renderContext;
 
