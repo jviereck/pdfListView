@@ -359,7 +359,7 @@ PDFPage.prototype = {
 };
 
 function boot() {
-    var pdf = new Document('tracemonkey.pdf');
+    var pdf = new Document('external/tracemonkey.pdf');
     pdf.initialized.then(function() {
         console.log('loaded');
 
