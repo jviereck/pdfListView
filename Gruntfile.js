@@ -1,3 +1,5 @@
+require('shelljs/global');
+
 module.exports = function(grunt) {
     grunt.registerTask('server', 'Start a static web server.', function(){
         var done = this.async();
@@ -13,6 +15,10 @@ module.exports = function(grunt) {
         }).listen(port);
 
         console.log('Starting a static web server on port: ' + port);
+    });
+
+    grunt.registerTask('deploy', 'Deploy the webpage to the gh-pages branch.', function() {
+        exec('git push -f origin master:gh-pages');
     });
 
     grunt.registerTask('default', 'server');

@@ -5,7 +5,8 @@
   "version": "0.0.1",
   "devDependencies": {
     "grunt": "~0.4.0",
-    "node-static": "~0.6.7"
+    "node-static": "~0.6.7",
+    "shelljs": "~0.1.2"
   },
   "repository": {
     "type": "git",
