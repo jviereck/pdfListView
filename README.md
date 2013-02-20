@@ -12,6 +12,21 @@ A simple list view to render a PDF document using [PDF.JS](https://github.com/mo
 - uses no library/framework other than the PDF.JS library
 - flexibel, modular, easy to replace parts with other implementations
 
+# Future Plans & Missing Implementations
+
+- cache rendered pages
+- use already rendered page image as placeholder if the zoom of the page changes
+- two pages support
+- page-wise scrolling
+- full-screen support
+- form support
+- annotation support
+- more APIS: go to next/previous page, rotatePage, ...
+- indicator (spinner) when page has not finished rendering
+- text selection
+- search
+- printing (as much as this is possible with current browsers)
+
 # Run locally
 
 Some browsers (like Chrome) need to load the `index.html` file using a local web server. This can easily done by installing the dev-dependencies:
