@@ -1,3 +1,9 @@
+(function (name, context, definition) {
+  if (typeof module != 'undefined' && module.exports) module.exports = definition()
+  else if (typeof define == 'function' && define.amd) define(definition)
+  else context[name] = definition()
+})('PDFListView', this, function (name, context) {
+
 function _flat(arr) {
     var res = arr.reduce(function(a, b) {
         return a.concat(b);
@@ -471,3 +477,4 @@ function PDFListView(url, mainDiv) {
 };
 
 return PDFListView;
+});
