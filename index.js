@@ -154,10 +154,9 @@ var SCALE_MODE_FIT_HEIGHT = 'scale_mode_fit_height';
 /**
  * Main view that holds the single pageContainer/pageViews of the pdfDoc.
  */
-function ListView(pdfDoc, dom) {
+function ListView(dom) {
     this.onScroll = this.onScroll.bind(this);
 
-    this.pdfDoc = pdfDoc;
     this.dom = dom;
 
     this.pageLayout = LAYOUT_SINGLE;
@@ -167,13 +166,29 @@ function ListView(pdfDoc, dom) {
     this.pageViews = [];
     this.containerViews = [];
 
-    this.assignPagesToContainer();
-
     this.onScroll();
     this.dom.addEventListener('scroll', this.onScroll);
 }
 
 ListView.prototype = {
+    loadDocument: function(pdfDoc) {
+        this.clearPages()
+
+        this.pdfDoc = pdfDoc;
+
+        this.assignPagesToContainer();
+        this.layout();
+    },
+
+    clearPages: function() {
+        var self = this;
+        this.containerViews.map(function(container) {
+            self.dom.removeChild(container.dom);
+        });
+        this.pageViews = [];
+        this.containerViews = [];
+    },
+
     assignPagesToContainer: function() {
         // TODO: Handle multiple layout types here. For now, assume to have one page
         // per pageContainer.
@@ -472,7 +487,7 @@ function switchToAutoScale() {
     renderController.updateRenderList();
 }
 
-function PDFListView(url, mainDiv, options) {
+function PDFListView(mainDiv, options) {
     if (typeof(options) != "object") {
         options = {}
     }
@@ -480,35 +495,38 @@ function PDFListView(url, mainDiv, options) {
         options.logLevel = Logger.INFO;
     }
     logger.logLevel = options.logLevel;
-    var pdf = new Document(url);
-    var self = this
-    pdf.initialized.then(function() {
+
+    this.listView = new ListView(mainDiv);
+
+    this.renderController = new RenderController();
+    this.renderController.addListView(this.listView);
+    this.renderController.updateRenderList();
+
+    var self = this;
+
+    mainDiv.addEventListener('scroll', function() {
+        // This will update the list AND start rendering if needed.
+        self.renderController.updateRenderList();
+    });
+
+    window.addEventListener('resize', function() {
+        // Check if the scale changed due to the resizing.
+        if (listView.calculateScale()) {
+            // Update the layout and start rendering. Changing the layout
+            // of the PageView makes it rendering stop.
+            listView.layout();
+            self.renderController.updateRenderList();
+        }
+    });
+};
+
+PDFListView.prototype.loadPdf = function(url) {
+    this.doc = new Document(url);
+    var self = this;
+    this.doc.initialized.then(function() {
         logger.debug('loaded');
-
-        var listView = new ListView(pdf, mainDiv);
-        listView.layout();
-
-        var renderController = new RenderController();
-        renderController.addListView(listView);
-        renderController.updateRenderList();
-
-        mainDiv.addEventListener('scroll', function() {
-            // This will update the list AND start rendering if needed.
-            renderController.updateRenderList();
-        });
-
-        window.addEventListener('resize', function() {
-            // Check if the scale changed due to the resizing.
-            if (listView.calculateScale()) {
-                // Update the layout and start rendering. Changing the layout
-                // of the PageView makes it rendering stop.
-                listView.layout();
-                renderController.updateRenderList();
-            }
-        });
-
-        self.listView = listView;
-        self.renderController = renderController;
+        self.listView.loadDocument(self.doc);
+        self.renderController.updateRenderList();
     }, failDumper);
 };
 
