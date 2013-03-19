@@ -4,6 +4,36 @@
   else context[name] = definition()
 })('PDFListView', this, function (name, context) {
 
+function Logger() {
+    this.logLevel = Logger.INFO;
+    self = this;
+    if (typeof(console) == "object" && typeof(console.log) == "function") {
+        this.debug = function() {
+            if (self.logLevel <= Logger.DEBUG) {
+                console.log.apply(console, arguments);
+            }
+        };
+        this.info = function() {
+            if (self.logLevel <= Logger.INFO) {
+                console.log.apply(console, arguments);
+            }
+        };
+        this.error = function() {
+            if (self.logLevel <= Logger.ERROR) {
+                console.log.apply(console, arguments);
+            }
+        };
+    } else {
+        this.debug = this.info = this.error = function nop() {}
+    }
+}
+
+Logger.DEBUG = 0;
+Logger.INFO  = 1;
+Logger.ERROR = 2;
+
+var logger = new Logger()
+
 function _flat(arr) {
     var res = arr.reduce(function(a, b) {
         return a.concat(b);
@@ -12,8 +42,7 @@ function _flat(arr) {
 }
 
 function failDumper(err) {
-    alert('fail' + err);
-    console.error(err);
+    logger.error(err);
 }
 
 PDFJS.Promise.prototype.thenThis = function(scope, callback, errback, progressback) {
@@ -385,7 +414,7 @@ Page.prototype = {
                 renderContext = null;
             } else if (renderContext.state === RenderingStates.PAUSED) {
                 // There is already a not finished renderState ->
-                console.log('RESUME', pageView.id);
+                logger.debug('RESUME', pageView.id);
                 renderContext.resume();
             }
         }
@@ -407,7 +436,7 @@ Page.prototype = {
                 }
 
                 if (renderController.pageToRender() !== pageView) {
-                  console.log('PAUSE', pageView.id);
+                  logger.debug('PAUSE', pageView.id);
                   renderContext.state = RenderingStates.PAUSED;
                   renderContext.resume = function resumeCallback() {
                     renderContext.state = RenderingStates.RUNNING;
@@ -415,7 +444,7 @@ Page.prototype = {
                   };
                   return;
                 }
-                console.log('CONT', pageView.id);
+                logger.debug('CONT', pageView.id);
                 cont();
               }
             };
@@ -424,7 +453,7 @@ Page.prototype = {
             renderContext.renderPromise = this.pdfPage.render(renderContext);
             renderContext.renderPromise.then(
               function pdfPageRenderCallback() {
-                console.log('DONE', pageView.id);
+                logger.debug('DONE', pageView.id);
                 pageView.isRendered = true;
                 renderController.finishedRendering(pageView);
               },
@@ -443,11 +472,18 @@ function switchToAutoScale() {
     renderController.updateRenderList();
 }
 
-function PDFListView(url, mainDiv) {
+function PDFListView(url, mainDiv, options) {
+    if (typeof(options) != "object") {
+        options = {}
+    }
+    if (typeof(options.logLevel) != "number") {
+        options.logLevel = Logger.INFO;
+    }
+    logger.logLevel = options.logLevel;
     var pdf = new Document(url);
     var self = this
     pdf.initialized.then(function() {
-        console.log('loaded');
+        logger.debug('loaded');
 
         var listView = new ListView(pdf, mainDiv);
         listView.layout();
@@ -475,6 +511,8 @@ function PDFListView(url, mainDiv) {
         self.renderController = renderController;
     }, failDumper);
 };
+
+PDFListView.Logger = Logger;
 
 return PDFListView;
 });
