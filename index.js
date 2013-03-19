@@ -216,6 +216,30 @@ ListView.prototype = {
         });
     },
 
+    setScale: function(scale) {
+        this.scaleMode = SCALE_MODE_VALUE;
+        this.scale = scale;
+        this.layout();
+    },
+
+    setToAutoScale: function() {
+        this.scaleMode = SCALE_MODE_AUTO;
+        this.calculateScale();
+        this.layout();
+    },
+
+    setToFitWidth: function() {
+        this.scaleMode = SCALE_MODE_FIT_WIDTH;
+        this.calculateScale();
+        this.layout();
+    },
+
+    setToFitHeight: function() {
+        this.scaleMode = SCALE_MODE_FIT_HEIGHT;
+        this.calculateScale();
+        this.layout();
+    },
+
     // Calculates the new scale. Returns `true` if the scale changed.
     calculateScale: function() {
         var newScale = this.scale;
@@ -480,13 +504,6 @@ Page.prototype = {
     }
 };
 
-function switchToAutoScale() {
-    listView.scaleMode = SCALE_MODE_AUTO;
-    listView.calculateScale();
-    listView.layout();
-    renderController.updateRenderList();
-}
-
 function PDFListView(mainDiv, options) {
     if (typeof(options) != "object") {
         options = {}
@@ -511,25 +528,46 @@ function PDFListView(mainDiv, options) {
 
     window.addEventListener('resize', function() {
         // Check if the scale changed due to the resizing.
-        if (listView.calculateScale()) {
+        if (self.listView.calculateScale()) {
             // Update the layout and start rendering. Changing the layout
             // of the PageView makes it rendering stop.
-            listView.layout();
+            self.listView.layout();
             self.renderController.updateRenderList();
         }
     });
 };
 
-PDFListView.prototype.loadPdf = function(url) {
-    this.doc = new Document(url);
-    var self = this;
-    this.doc.initialized.then(function() {
-        logger.debug('loaded');
-        self.listView.loadDocument(self.doc);
-        self.renderController.updateRenderList();
-    }, failDumper);
-};
+PDFListView.prototype = {
+    loadPdf: function(url) {
+        this.doc = new Document(url);
+        var self = this;
+        this.doc.initialized.then(function() {
+            logger.debug('loaded');
+            self.listView.loadDocument(self.doc);
+            self.renderController.updateRenderList();
+        }, failDumper);
+    },
 
+    setScale: function(scale) {
+        this.listView.setScale(scale);
+        this.renderController.updateRenderList();
+    },
+
+    setToAutoScale: function() {
+        this.listView.setToAutoScale();
+        this.renderController.updateRenderList();
+    },
+
+    setToFitWidth: function() {
+        this.listView.setToFitWidth();
+        this.renderController.updateRenderList();
+    },
+
+    setToFitHeight: function() {
+        this.listView.setToFitHeight();
+        this.renderController.updateRenderList();
+    }
+};
 PDFListView.Logger = Logger;
 
 return PDFListView;
