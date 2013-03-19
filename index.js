@@ -437,12 +437,12 @@ function switchToAutoScale() {
     renderController.updateRenderList();
 }
 
-function boot() {
-    var pdf = new Document('external/tracemonkey.pdf');
+function PDFListView(url, mainDiv) {
+    var pdf = new Document(url);
+    var self = this
     pdf.initialized.then(function() {
         console.log('loaded');
 
-        var mainDiv = document.body.querySelector('#main');
         var listView = new ListView(pdf, mainDiv);
         listView.layout();
 
@@ -465,9 +465,9 @@ function boot() {
             }
         });
 
-        window.listView = listView;
-        window.renderController = renderController;
+        self.listView = listView;
+        self.renderController = renderController;
     }, failDumper);
-}
+};
 
-boot();
+return PDFListView;
