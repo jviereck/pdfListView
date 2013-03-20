@@ -346,9 +346,7 @@ function PageView(page, listView) {
 
     var dom = this.dom = document.createElement('div');
     dom.className = "pageView";
-    var canvas = this.canvas = document.createElement('canvas');
-
-    dom.appendChild(canvas);
+    this.createNewCanvas();
 }
 
 PageView.prototype = {
@@ -400,6 +398,15 @@ PageView.prototype = {
 
     getCanvasContext: function() {
         return this.canvas.getContext('2d');
+    },
+
+    createNewCanvas: function() {
+        if (this.canvas) {
+            this.dom.removeChild(this.canvas);
+        }
+        var canvas = this.canvas = document.createElement('canvas');
+        this.dom.appendChild(canvas);
+        this.layout();
     }
 };
 
@@ -616,6 +623,7 @@ Page.prototype = {
         // Not most important page to render ATM.
         if (renderController.pageToRender() !== pageView) return;
 
+        var self = this;
         var viewport;
         if (renderContext = this.renderContextList[pageView.id]) {
             viewport = renderContext.viewport;
@@ -625,7 +633,10 @@ Page.prototype = {
                 viewport.height !== pageView.viewport.height)
             {
                 // The viewport changed -> need to rerender.
-                renderContext = null;
+                renderContext.abandon = true;
+                delete self.renderContextList[pageView.id];
+                pageView.createNewCanvas();
+                self.render(pageView, renderController);
             } else if (renderContext.state === RenderingStates.PAUSED) {
                 // There is already a not finished renderState ->
                 logger.debug('RESUME', pageView.id);
@@ -653,10 +664,8 @@ Page.prototype = {
               viewport: viewport,
               textLayer: textLayer,
               continueCallback: function pdfViewContinueCallback(cont) {
-                if (viewport.height !== pageView.viewport.height ||
-                    viewport.height !== pageView.viewport.height)
-                {
-                  // If the viewport changed while rendering, then stop here.
+                if (renderContext.abandon) {
+                  logger.debug("ABANDON", pageView.id);
                   return;
                 }
 
@@ -675,6 +684,7 @@ Page.prototype = {
             };
             this.renderContextList[pageView.id] = renderContext;
 
+            logger.debug("BEGIN", pageView.id);
             renderContext.renderPromise = this.pdfPage.render(renderContext);
             renderContext.renderPromise.then(
               function pdfPageRenderCallback() {
