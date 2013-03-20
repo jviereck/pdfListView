@@ -737,11 +737,13 @@ PDFListView.prototype = {
     loadPdf: function(url) {
         this.doc = new Document(url);
         var self = this;
-        this.doc.initialized.then(function() {
+        var promise = this.doc.initialized
+        promise.then(function() {
             logger.debug('loaded');
             self.listView.loadDocument(self.doc);
             self.renderController.updateRenderList();
         }, failDumper);
+        return promise;
     },
 
     setScale: function(scale) {
