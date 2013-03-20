@@ -155,8 +155,6 @@ var SCALE_MODE_FIT_HEIGHT = 'scale_mode_fit_height';
  * Main view that holds the single pageContainer/pageViews of the pdfDoc.
  */
 function ListView(dom) {
-    this.onScroll = this.onScroll.bind(this);
-
     this.dom = dom;
 
     this.pageLayout = LAYOUT_SINGLE;
@@ -165,9 +163,6 @@ function ListView(dom) {
 
     this.pageViews = [];
     this.containerViews = [];
-
-    this.onScroll();
-    this.dom.addEventListener('scroll', this.onScroll);
 }
 
 ListView.prototype = {
@@ -202,12 +197,6 @@ ListView.prototype = {
 
             this.dom.appendChild(container.dom);
         }, this);
-    },
-
-    onScroll: function() {
-        // Cache these results to avoid dom access.
-        this.scrollTop = this.dom.scrollTop;
-        this.scrollBottom = this.scrollTop + this.dom.clientHeight;
     },
 
     layout: function() {
@@ -269,6 +258,10 @@ ListView.prototype = {
     },
 
     getPagesToRender: function() {
+        // Cache these results to avoid dom access.
+        this.scrollTop = this.dom.scrollTop;
+        this.scrollBottom = this.scrollTop + this.dom.clientHeight;
+
         // TODO: For now, this only returns the visible pages and not
         // +1/-1 one to render in advance.
         return this.pageViews.filter(function(pageView) {
