@@ -161,6 +161,9 @@ function ListView(dom) {
     this.scaleMode = SCALE_MODE_VALUE;
     this.scale = 1.0;
 
+    this.pageWidthOffset = 0;
+    this.pageHeightOffset = 0;
+
     this.pageViews = [];
     this.containerViews = [];
 }
@@ -205,6 +208,10 @@ ListView.prototype = {
         });
     },
 
+    getScale: function() {
+        return this.scale
+    },
+
     setScale: function(scale) {
         this.scaleMode = SCALE_MODE_VALUE;
         this.scale = scale;
@@ -235,23 +242,23 @@ ListView.prototype = {
         var oldScale = newScale;
         var scaleMode = this.scaleMode;
         if (scaleMode === SCALE_MODE_FIT_WIDTH || scaleMode === SCALE_MODE_AUTO) {
-            var offsetWidth = this.dom.offsetWidth;
+            var clientWidth = this.dom.clientWidth;
             var maxNormalWidth = 0;
             this.containerViews.forEach(function(containerView) {
                 maxNormalWidth = Math.max(maxNormalWidth, containerView.normalWidth);
             });
-            var scale = offsetWidth/maxNormalWidth;
+            var scale = (clientWidth - this.pageWidthOffset)/maxNormalWidth;
             if (scaleMode === SCALE_MODE_AUTO) {
                 scale = Math.min(1.0, scale);
             }
             newScale = scale;
         } else if (scaleMode === SCALE_MODE_FIT_HEIGHT) {
-            var offsetHeight = this.dom.offsetHeight;
+            var clientHeight = this.dom.clientHeight;
             var maxNormalHeight = 0;
             this.containerViews.forEach(function(containerView) {
                 maxNormalHeight = Math.max(maxNormalHeight, containerView.normalHeight);
             });
-            newScale = offsetHeight/maxNormalHeight;
+            newScale = (clientHeight - this.pageHeightOffset)/maxNormalHeight;
         }
         this.scale = newScale;
         return newScale !== oldScale;
@@ -744,6 +751,10 @@ PDFListView.prototype = {
             self.renderController.updateRenderList();
         }, failDumper);
         return promise;
+    },
+
+    getScale: function() {
+        return this.listView.getScale();
     },
 
     setScale: function(scale) {
