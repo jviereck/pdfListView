@@ -29,3 +29,9 @@ canvas {
   cursor: text;
 }
 
+.textLayer > div::selection {
+  background:rgba(0,0,255,0.3);
+}
+.textLayer > div::-moz-selection {
+  background:rgba(0,0,255,0.3);
+}
