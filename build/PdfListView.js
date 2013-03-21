@@ -357,7 +357,7 @@ function ListView(dom) {
 }
 
 ListView.prototype = {
-    loadDocument: function(pdfDoc) {
+    setDocument: function(pdfDoc) {
         this.clearPages()
 
         this.pdfDoc = pdfDoc;
@@ -754,7 +754,7 @@ PDFListView.prototype = {
         var promise = this.doc.initialized
         promise.then(function() {
             logger.debug('loaded');
-            self.listView.loadDocument(self.doc);
+            self.listView.setDocument(self.doc);
             self.renderController.updateRenderList();
         }, failDumper);
         return promise;
