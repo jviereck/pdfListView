@@ -70,7 +70,7 @@ function Document(url, password) {
     }
 
     this.initialized = new PDFJS.Promise();
-    PDFJS.getDocument(parameters).thenThis(this, this.loadPages, failDumper);
+    PDFJS.getDocument(parameters).thenThis(this, this.loadPages, failDumper, this.onLoadProgress);
 }
 
 Document.prototype.loadPages = function(pdfDocument) {
@@ -90,6 +90,10 @@ Document.prototype.loadPages = function(pdfDocument) {
 
         this.initialized.resolve();
     }, failDumper);
+};
+
+Document.prototype.onLoadProgress = function() {
+    this.initialized.progress.apply(this.initialized, arguments);
 };
 
 /**
