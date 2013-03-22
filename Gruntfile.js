@@ -17,10 +17,14 @@ module.exports = function(grunt) {
         console.log('Starting a static web server on port: ' + port);
     });
 
-    grunt.registerTask('deploy', 'Deploy the webpage to the gh-pages branch.', function() {
+    grunt.registerTask('build', 'Bundles the JS files into one file and place it under build/', function() {
+        exec('node build.js');
+    });
+
+    grunt.registerTask('gh-pages', 'Push to GitHub pages branch', function() {
         exec('git push -f origin master:gh-pages');
     });
 
+    grunt.registerTask('deploy', 'Build and deploy the webpage to the gh-pages branch.', ['build', 'gh-pages']);
     grunt.registerTask('default', 'server');
-}
-
+};
