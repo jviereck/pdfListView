@@ -412,6 +412,10 @@ PageView.prototype = {
             this.dom.removeChild(this.textLayerDiv);
             delete this.textLayerDiv;
         }
+        if (this.annotationsLayerDiv) {
+            this.dom.removeChild(this.annotationsLayerDiv);
+            delete this.annotationsLayerDiv;
+        }
     },
 
     render: function(renderController) {
@@ -496,11 +500,24 @@ Page.prototype = {
                 var textLayerDiv = pageView.textLayerDiv = document.createElement("div");
                 textLayerDiv.className = 'plv-text-layer text-layer';
                 pageView.dom.appendChild(textLayerDiv);
-                textLayer = new TextLayerBuilder(textLayerDiv);
+                textLayer = new textLayerBuilder(textLayerDiv);
                 this.pdfPage.getTextContent().then(
                   function(textContent) {
                     textLayer.setTextContent(textContent);
                   }
+                );
+            }
+
+            var annotationsLayerBuilder = pageView.listView.options.annotationsLayerBuilder;
+            if (annotationsLayerBuilder) {
+                var annotationsLayerDiv = pageView.annotationsLayerDiv = document.createElement("div");
+                annotationsLayerDiv.className = 'plv-annotations-layer annotations-layer';
+                pageView.dom.appendChild(annotationsLayerDiv);
+                var annotationsLayer = new annotationsLayerBuilder(pageView, annotationsLayerDiv);
+                this.pdfPage.getAnnotations().then(
+                    function(annotations) {
+                        annotationsLayer.setAnnotations(annotations)
+                    }
                 );
             }
 
