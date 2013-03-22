@@ -229,13 +229,17 @@ function failDumper(err) {
     logger.error(err);
 }
 
-PDFJS.Promise.prototype.thenThis = function(scope, callback, errback, progressback) {
-    return this.then(
-        callback ? callback.bind(scope) : undefined,
-        errback ? errback.bind(scope) : undefined,
-        progressback ? progressback.bind(scope) : undefined
-    );
-};
+if (typeof(PDFJS) === "undefined") {
+    logger.error("PDF.js is not yet loaded.");
+} else {
+    PDFJS.Promise.prototype.thenThis = function(scope, callback, errback, progressback) {
+        return this.then(
+            callback ? callback.bind(scope) : undefined,
+            errback ? errback.bind(scope) : undefined,
+            progressback ? progressback.bind(scope) : undefined
+        );
+    };
+}
 
 // -----------------------------------------------------------------------------
 
