@@ -1,6 +1,6 @@
 function Logger() {
     this.logLevel = Logger.INFO;
-    self = this;
+    var self = this;
     if (typeof(console) == "object" && typeof(console.log) == "function") {
         this.debug = function() {
             if (self.logLevel <= Logger.DEBUG) {
