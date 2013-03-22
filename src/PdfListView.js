@@ -6,7 +6,7 @@
 
 //#expand __BUNDLE__
 
-var logger = new Logger()
+var logger = new Logger();
 
 function _flat(arr) {
     var res = arr.reduce(function(a, b) {
@@ -30,38 +30,6 @@ if (typeof(PDFJS) === "undefined") {
         );
     };
 }
-
-var css =
-    ".plv-page-view {                   " +
-    "  position: relative;              " +
-    "}                                  " +
-    ".plv-text-layer {                  " +
-    "  position: absolute;              " +
-    "  left: 0;                         " +
-    "  top: 0;                          " +
-    "  right: 0;                        " +
-    "  bottom: 0;                       " +
-    "  color: #000;                     " +
-    "  font-family: sans-serif;         " +
-    "  overflow: hidden;                " +
-    "}                                  " +
-    ".plv-text-layer > div {            " +
-    "  color: transparent;              " +
-    "  position: absolute;              " +
-    "  line-height: 1;                  " +
-    "  white-space: pre;                " +
-    "  cursor: text;                    " +
-    "}                                  " +
-    ".plv-text-layer > div::selection { " +
-    "  background:rgba(0,0,255,0.3);    " +
-    "}                                  " +
-    ".plv-text-layer > div::-moz-selection { " +
-    "  background:rgba(0,0,255,0.3);         " +
-    "}                                       ";
-var scriptTag = document.createElement("style")
-scriptTag.type = "text/css"
-scriptTag.innerHTML = css;
-document.head.appendChild(scriptTag);
 
 // -----------------------------------------------------------------------------
 
