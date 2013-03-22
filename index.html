@@ -18,6 +18,17 @@
     <!-- The pageContainers go here !-->
 </div>
 
-<script src="index.js"></script>
+<script src="src/Logger.js"></script>
+<script src="src/TextLayerBuilder.js"></script>
+<script src="src/PdfListView.js"></script>
+<script type="text/javascript">
+    window.pdfListView = new PDFListView(
+        document.getElementById("main"),
+        {
+            logLevel: PDFListView.Logger.DEBUG
+        }
+    );
+    pdfListView.loadPdf("external/tracemonkey.pdf");
+</script>
 </body>
 </html>
