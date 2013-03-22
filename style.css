@@ -1,37 +1,8 @@
-canvas {
-  box-shadow: black 0px 0px 10px;
-}
-
-.pageContainer {
+.page-container {
   margin: 10px auto;
 }
 
-.pageView {
-  position: relative;
+.page-view canvas {
+  box-shadow: black 0px 0px 10px;
 }
 
-.textLayer {
-  position: absolute;
-  left: 0;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  color: #000;
-  font-family: sans-serif;
-  overflow: hidden;
-}
-
-.textLayer > div {
-  color: transparent;
-  position: absolute;
-  line-height: 1;
-  white-space: pre;
-  cursor: text;
-}
-
-.textLayer > div::selection {
-  background:rgba(0,0,255,0.3);
-}
-.textLayer > div::-moz-selection {
-  background:rgba(0,0,255,0.3);
-}

@@ -31,6 +31,38 @@ if (typeof(PDFJS) === "undefined") {
     };
 }
 
+var css =
+    ".plv-page-view {                   " +
+    "  position: relative;              " +
+    "}                                  " +
+    ".plv-text-layer {                  " +
+    "  position: absolute;              " +
+    "  left: 0;                         " +
+    "  top: 0;                          " +
+    "  right: 0;                        " +
+    "  bottom: 0;                       " +
+    "  color: #000;                     " +
+    "  font-family: sans-serif;         " +
+    "  overflow: hidden;                " +
+    "}                                  " +
+    ".plv-text-layer > div {            " +
+    "  color: transparent;              " +
+    "  position: absolute;              " +
+    "  line-height: 1;                  " +
+    "  white-space: pre;                " +
+    "  cursor: text;                    " +
+    "}                                  " +
+    ".plv-text-layer > div::selection { " +
+    "  background:rgba(0,0,255,0.3);    " +
+    "}                                  " +
+    ".plv-text-layer > div::-moz-selection { " +
+    "  background:rgba(0,0,255,0.3);         " +
+    "}                                       ";
+var scriptTag = document.createElement("style")
+scriptTag.type = "text/css"
+scriptTag.innerHTML = css;
+document.head.appendChild(scriptTag);
+
 // -----------------------------------------------------------------------------
 
 /**
@@ -272,7 +304,7 @@ function PageContainerView(listView) {
     this.listView = listView;
 
     var dom = this.dom = document.createElement('div');
-    dom.className = 'pageContainer';
+    dom.className = 'plv-page-container page-container';
     this.pages = [];
 }
 
@@ -334,7 +366,7 @@ function PageView(page, listView) {
     this.renderState = RenderingStates.INITIAL;
 
     var dom = this.dom = document.createElement('div');
-    dom.className = "pageView";
+    dom.className = "plv-page-view page-view";
     this.createNewCanvas();
 }
 
@@ -458,7 +490,7 @@ Page.prototype = {
             // the rendering process.
 
             textLayerDiv = document.createElement("div")
-            textLayerDiv.className = 'textLayer';
+            textLayerDiv.className = 'plv-text-layer text-layer';
             pageView.dom.appendChild(textLayerDiv);
             textLayer = new TextLayerBuilder(textLayerDiv)
             this.pdfPage.getTextContent().then(
