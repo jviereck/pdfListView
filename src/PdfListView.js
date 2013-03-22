@@ -408,6 +408,10 @@ PageView.prototype = {
     resetRenderState: function() {
         this.renderState = RenderingStates.INITIAL;
         this.isRendered = false;
+        if (this.textLayerDiv) {
+            this.dom.removeChild(this.textLayerDiv);
+            delete this.textLayerDiv;
+        }
     },
 
     render: function(renderController) {
@@ -489,7 +493,7 @@ Page.prototype = {
             var textLayer;
             var textLayerBuilder = pageView.listView.options.textLayerBuilder;
             if (textLayerBuilder) {
-                var textLayerDiv = document.createElement("div");
+                var textLayerDiv = pageView.textLayerDiv = document.createElement("div");
                 textLayerDiv.className = 'plv-text-layer text-layer';
                 pageView.dom.appendChild(textLayerDiv);
                 textLayer = new TextLayerBuilder(textLayerDiv);
