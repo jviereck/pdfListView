@@ -4,8 +4,7 @@ path = require("path");
 SOURCE_DIR = "src";
 BUILD_DIR = "build"
 SOURCE_FILES = [
-    "TextLayerBuilder.js",
-    "Logger.js"
+    "TextLayerBuilder.js"
 ];
 MAIN_FILE = "PdfListView.js";
 
