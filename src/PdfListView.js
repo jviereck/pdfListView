@@ -6,6 +6,34 @@
 
 //#expand __BUNDLE__
 
+function Logger() {
+    this.logLevel = Logger.INFO;
+    var self = this;
+    if (typeof(console) == "object" && typeof(console.log) == "function") {
+        this.debug = function() {
+            if (self.logLevel <= Logger.DEBUG) {
+                console.log.apply(console, arguments);
+            }
+        };
+        this.info = function() {
+            if (self.logLevel <= Logger.INFO) {
+                console.log.apply(console, arguments);
+            }
+        };
+        this.error = function() {
+            if (self.logLevel <= Logger.ERROR) {
+                console.log.apply(console, arguments);
+            }
+        };
+    } else {
+        this.debug = this.info = this.error = function nop() {};
+    }
+}
+
+Logger.DEBUG = 0;
+Logger.INFO  = 1;
+Logger.ERROR = 2;
+
 var logger = new Logger();
 
 function _flat(arr) {
@@ -136,8 +164,9 @@ var SCALE_MODE_FIT_HEIGHT = 'scale_mode_fit_height';
 /**
  * Main view that holds the single pageContainer/pageViews of the pdfDoc.
  */
-function ListView(dom) {
+function ListView(dom, options) {
     this.dom = dom;
+    this.options = options;
 
     this.pageLayout = LAYOUT_SINGLE;
     this.scaleMode = SCALE_MODE_VALUE;
@@ -152,7 +181,7 @@ function ListView(dom) {
 
 ListView.prototype = {
     setDocument: function(pdfDoc) {
-        this.clearPages()
+        this.clearPages();
 
         this.pdfDoc = pdfDoc;
 
@@ -191,7 +220,7 @@ ListView.prototype = {
     },
 
     getScale: function() {
-        return this.scale
+        return this.scale;
     },
 
     setScale: function(scale) {
@@ -457,15 +486,19 @@ Page.prototype = {
             // No rendering data yet -> create a new renderContext and start
             // the rendering process.
 
-            textLayerDiv = document.createElement("div")
-            textLayerDiv.className = 'plv-text-layer text-layer';
-            pageView.dom.appendChild(textLayerDiv);
-            textLayer = new TextLayerBuilder(textLayerDiv)
-            this.pdfPage.getTextContent().then(
-              function(textContent) {
-                textLayer.setTextContent(textContent);
-              }
-            );
+            var textLayer;
+            var textLayerBuilder = pageView.listView.options.textLayerBuilder;
+            if (textLayerBuilder) {
+                var textLayerDiv = document.createElement("div");
+                textLayerDiv.className = 'plv-text-layer text-layer';
+                pageView.dom.appendChild(textLayerDiv);
+                textLayer = new TextLayerBuilder(textLayerDiv);
+                this.pdfPage.getTextContent().then(
+                  function(textContent) {
+                    textLayer.setTextContent(textContent);
+                  }
+                );
+            }
 
             renderContext = {
               canvasContext: pageView.getCanvasContext(),
@@ -510,14 +543,14 @@ Page.prototype = {
 
 function PDFListView(mainDiv, options) {
     if (typeof(options) != "object") {
-        options = {}
+        options = {};
     }
     if (typeof(options.logLevel) != "number") {
         options.logLevel = Logger.INFO;
     }
     logger.logLevel = options.logLevel;
 
-    this.listView = new ListView(mainDiv);
+    this.listView = new ListView(mainDiv, options);
 
     this.renderController = new RenderController();
     this.renderController.addListView(this.listView);
@@ -539,15 +572,15 @@ function PDFListView(mainDiv, options) {
             self.renderController.updateRenderList();
         }
     });
-};
+}
 
 PDFListView.prototype = {
     loadPdf: function(url) {
         this.doc = new Document(url);
         var self = this;
-        var promise = this.doc.initialized
+        var promise = this.doc.initialized;
         promise.then(function() {
-            logger.debug('loaded');
+            logger.debug('LOADED');
             self.listView.setDocument(self.doc);
             self.renderController.updateRenderList();
         }, failDumper);
@@ -581,5 +614,6 @@ PDFListView.prototype = {
 PDFListView.Logger = Logger;
 
 return PDFListView;
+
 });
 
