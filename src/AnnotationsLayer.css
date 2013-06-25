@@ -5,8 +5,10 @@
   right: 0;
   bottom: 0;
   overflow: hidden;
+  pointer-events: none;
 }
 .plv-annotations-layer > a {
   display: block;
   position: absolute;
+  pointer-events: auto;
 }
