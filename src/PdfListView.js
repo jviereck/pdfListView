@@ -88,12 +88,22 @@ Document.prototype.loadPages = function(pdfDocument) {
         pagePromises.push(pdfDocument.getPage(i));
     }
 
+    this.pageRefMap = pageRefMap = {};
     var pagesPromise = PDFJS.Promise.all(pagePromises);
     pagesPromise.thenThis(this, function(promisedPages) {
-        this.pages = promisedPages.map(function(pdfPage) {
+        this.pages = promisedPages.map(function(pdfPage, i) {
+            var pageRef = pdfPage.ref
+            pageRefMap[pageRef.num + ' ' + pageRef.gen] = i;
             return new Page(pdfPage);
         });
+    });
 
+    var destinationsPromise = pdfDocument.getDestinations();
+    destinationsPromise.thenThis(this, function(destinations) {
+        this.destinations = destinations;
+    });
+
+    PDFJS.Promise.all([pagesPromise, destinationsPromise]).thenThis(this, function() {
         this.initialized.resolve();
     }, failDumper);
 };
@@ -289,6 +299,37 @@ ListView.prototype = {
                 return true;
             }
         });
+    },
+
+    navigateTo: function(destRef) {
+        var destination = this.pdfDoc.destinations[destRef]
+        if (typeof destination !== "object") {
+            return;
+        }
+        logger.debug("NAVIGATING TO", destination);
+
+        var pageRef = destination[0];
+        var pageNumber = this.pdfDoc.pageRefMap[pageRef.num + ' ' + pageRef.gen];
+        if (typeof pageNumber !== "number") {
+            return;
+        }
+        logger.debug("PAGE NUMBER", pageNumber);
+
+        var pageView = this.pageViews[pageNumber];
+
+        var destinationType = destination[1].name;
+        switch(destinationType) {
+            case "XYZ":
+                var x = destination[2];
+                var y = destination[3];
+                break;
+            default:
+                // TODO
+                return;
+        }
+        var offset = pageView.getPdfPositionOffsetInViewer(x,y);
+        this.dom.scrollTop = offset.top;
+        this.dom.scrollLeft = offset.left;
     }
 };
 
@@ -433,6 +474,37 @@ PageView.prototype = {
         var canvas = this.canvas = document.createElement('canvas');
         this.dom.appendChild(canvas);
         this.layout();
+    },
+
+    pdfPositionToPixels: function(x, y) {
+        return this.viewport.convertToViewportPoint(x, y);
+    },
+
+    getCanvasOffsetInViewer: function() {
+        var currentEl = this.canvas;
+        var offsetTop = 0;
+        var offsetLeft = 0;
+        while(parentOffset = currentEl.offsetParent) {
+            offsetTop += currentEl.offsetTop;
+            offsetLeft += currentEl.offsetLeft;
+            currentEl = currentEl.offsetParent;
+            if (currentEl == this.listView.dom) {
+                break;
+            }
+        }
+        return {
+            left: offsetLeft,
+            top: offsetTop
+        }
+    },
+
+    getPdfPositionOffsetInViewer: function(x, y) {
+        pageOffset = this.pdfPositionToPixels(x, y);
+        canvasOffset = this.getCanvasOffsetInViewer();
+        return {
+            left: canvasOffset.left + pageOffset[0],
+            top: canvasOffset.top + pageOffset[1]
+        }
     }
 };
 

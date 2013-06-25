@@ -42,6 +42,12 @@ AnnotationsLayerBuilder.prototype = {
             element.href = link.url;
             element.target = this.EXTERNAL_LINK_TARGET;
         } else if (link.dest) {
+            element.href = "#" + link.dest;
+            var listView = this.pageView.listView;
+            element.onclick = function(e) {
+                e.preventDefault()
+                listView.navigateTo(link.dest);
+            }
             // TODO
         }
     }
