@@ -224,9 +224,11 @@ ListView.prototype = {
     },
 
     layout: function() {
+        this.savePdfPosition();
         this.containerViews.forEach(function(containerView) {
             containerView.layout();
         });
+        this.restorePdfPosition();
     },
 
     getScale: function() {
@@ -327,9 +329,39 @@ ListView.prototype = {
                 // TODO
                 return;
         }
-        var offset = pageView.getPdfPositionOffsetInViewer(x,y);
-        this.dom.scrollTop = offset.top;
-        this.dom.scrollLeft = offset.left;
+        var position = pageView.getPdfPositionInViewer(x,y);
+        this.dom.scrollTop = position.top;
+        this.dom.scrollLeft = position.left;
+    },
+
+    savePdfPosition: function() {
+        delete this.pdfPosition;
+        for (var i = 0; i < this.pageViews.length; i++) {
+            var pageView = this.pageViews[i];
+            var pdfOffset = pageView.getUppermostVisiblePdfOffset();
+            if (pdfOffset !== null) {
+                this.pdfPosition = {
+                    page: i,
+                    offset: {
+                        top: pdfOffset,
+                        left: 0 // TODO
+                    }
+                }
+                break;
+            }
+        }
+        logger.debug("SAVED PDF POSITION", this.pdfPosition);
+    },
+
+    restorePdfPosition: function() {
+        if (typeof this.pdfPosition !== "undefined") {
+            logger.debug("RESTORING PDF POSITION", this.pdfPosition);
+            var offset = this.pdfPosition.offset;
+            var page_index = this.pdfPosition.page;
+            var pageView = this.pageViews[page_index];
+            var position = pageView.getPdfPositionInViewer(offset.left, offset.top);
+            this.dom.scrollTop = position.top;
+        }
     }
 };
 
@@ -480,7 +512,7 @@ PageView.prototype = {
         return this.viewport.convertToViewportPoint(x, y);
     },
 
-    getCanvasOffsetInViewer: function() {
+    getCanvasPositionInViewer: function() {
         var currentEl = this.canvas;
         var offsetTop = 0;
         var offsetLeft = 0;
@@ -498,13 +530,54 @@ PageView.prototype = {
         }
     },
 
-    getPdfPositionOffsetInViewer: function(x, y) {
+    getPdfPositionInViewer: function(x, y) {
         pageOffset = this.pdfPositionToPixels(x, y);
-        canvasOffset = this.getCanvasOffsetInViewer();
+        canvasOffset = this.getCanvasPositionInViewer();
         return {
             left: canvasOffset.left + pageOffset[0],
             top: canvasOffset.top + pageOffset[1]
         }
+    },
+
+    getUppermostVisibleCanvasOffset: function() {
+        var pagePosition = this.getCanvasPositionInViewer();
+        var pageHeight = this.canvas.height;
+        var viewportTop = this.listView.dom.scrollTop;
+        var viewportHeight = this.listView.dom.clientHeight;
+        // Check if the top of the page is showing, i.e:
+        // _______________
+        // |             |
+        // |   ........  |
+        // |   .      .  |
+        // ----.------.---
+        //     .      .
+        //     ........
+        var topVisible = (pagePosition.top > viewportTop && pagePosition.top < viewportTop + viewportHeight);
+        // Check if at least some of the page is showing, i.e:
+        //     ........                 ........
+        // ____.______.___           ---.------.---
+        // |   .      .  |     or    |  .      .  |
+        // |   .      .  |           |  .      .  |
+        // |   ........  |           |  .      .  |
+        // ---------------           ---.------.---
+        //                              ........
+        var someContentVisible = (pagePosition.top < viewportTop && pagePosition.top + pageHeight > viewportTop);
+        if (topVisible) {
+            return 0;
+        } else if (someContentVisible) {
+            return viewportTop - pagePosition.top;
+        } else {
+            return null;
+        }
+    },
+
+    getUppermostVisiblePdfOffset: function() {
+        var canvasOffset = this.getUppermostVisibleCanvasOffset();
+        if (canvasOffset === null) {
+            return null;
+        }
+        var pdfOffset = this.viewport.convertToPdfPoint(0, canvasOffset);
+        return pdfOffset[1];
     }
 };
 
