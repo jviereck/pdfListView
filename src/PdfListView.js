@@ -259,6 +259,11 @@ ListView.prototype = {
         this.layout();
     },
 
+    onResize: function() {
+        this.calculateScale();
+        this.layout();
+    },
+
     // Calculates the new scale. Returns `true` if the scale changed.
     calculateScale: function() {
         var newScale = this.scale;
@@ -513,20 +518,9 @@ PageView.prototype = {
     },
 
     getCanvasPositionInViewer: function() {
-        var currentEl = this.canvas;
-        var offsetTop = 0;
-        var offsetLeft = 0;
-        while(parentOffset = currentEl.offsetParent) {
-            offsetTop += currentEl.offsetTop;
-            offsetLeft += currentEl.offsetLeft;
-            currentEl = currentEl.offsetParent;
-            if (currentEl == this.listView.dom) {
-                break;
-            }
-        }
         return {
-            left: offsetLeft,
-            top: offsetTop
+            left: this.canvas.offsetLeft + this.dom.offsetLeft,
+            top: this.canvas.offsetTop + this.dom.offsetTop
         }
     },
 
@@ -775,6 +769,10 @@ PDFListView.prototype = {
     setToFitHeight: function() {
         this.listView.setToFitHeight();
         this.renderController.updateRenderList();
+    },
+
+    onResize: function() {
+        this.listView.onResize();
     }
 };
 PDFListView.Logger = Logger;
