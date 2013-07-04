@@ -9,7 +9,7 @@ AnnotationsLayerBuilder.prototype = {
     setAnnotations: function(annotations) {
         for (var i = 0; i < annotations.length; i++) {
             var annotation = annotations[i];
-            switch (annotation.type) {
+            switch (annotation.subtype) {
                 case 'Link':
                     this.addLink(annotation);
                     break;
