@@ -64,7 +64,7 @@ if (typeof(PDFJS) === "undefined") {
 /**
  * Wrapper around the raw PDF.JS document.
  */
-function Document(url, password) {
+function Document(url, password, onProgress) {
     this.pdfDocument = null;
     this.pages = null;
 
@@ -76,7 +76,7 @@ function Document(url, password) {
     }
 
     this.initialized = new PDFJS.Promise();
-    PDFJS.getDocument(parameters).thenThis(this, this.loadPages, failDumper, this.onLoadProgress);
+    PDFJS.getDocument(parameters, null, null, onProgress).thenThis(this, this.loadPages, failDumper);
 }
 
 Document.prototype.loadPages = function(pdfDocument) {
@@ -106,10 +106,6 @@ Document.prototype.loadPages = function(pdfDocument) {
     PDFJS.Promise.all([pagesPromise, destinationsPromise]).thenThis(this, function() {
         this.initialized.resolve();
     }, failDumper);
-};
-
-Document.prototype.onLoadProgress = function() {
-    this.initialized.progress.apply(this.initialized, arguments);
 };
 
 /**
@@ -735,8 +731,8 @@ function PDFListView(mainDiv, options) {
 }
 
 PDFListView.prototype = {
-    loadPdf: function(url) {
-        this.doc = new Document(url);
+    loadPdf: function(url, onProgress) {
+        this.doc = new Document(url, null, onProgress);
         var self = this;
         var promise = this.doc.initialized;
         promise.then(function() {
