@@ -158,6 +158,19 @@ RenderController.prototype = {
             this.renderList.splice(idx, 1);
             this.doRender();
         }
+    },
+
+    onResize: function() {
+        var renderAgain = false
+        this.listViews.map(function(listView) {
+            if (listView.calculateScale()) {
+                listView.layout();
+                renderAgain = true;
+            }
+        });
+        if (renderAgain) {
+            this.updateRenderList();
+        }
     }
 };
 
@@ -231,33 +244,33 @@ ListView.prototype = {
         return this.scale;
     },
 
-    setScale: function(scale) {
-        this.scaleMode = SCALE_MODE_VALUE;
-        this.scale = scale;
+    getScaleMode: function() {
+        return this.scaleMode;
+    },
+
+    setScaleMode: function(scaleMode, scale) {
+        this.scaleMode = scaleMode;
+        if (scaleMode == SCALE_MODE_VALUE) {
+            this.scale = scale;
+        }
+        this.calculateScale();
         this.layout();
+    },
+
+    setScale: function(scale) {
+        this.setScaleMode(SCALE_MODE_VALUE, scale);
     },
 
     setToAutoScale: function() {
-        this.scaleMode = SCALE_MODE_AUTO;
-        this.calculateScale();
-        this.layout();
+        this.setScaleMode(SCALE_MODE_AUTO);
     },
 
     setToFitWidth: function() {
-        this.scaleMode = SCALE_MODE_FIT_WIDTH;
-        this.calculateScale();
-        this.layout();
+        this.setScaleMode(SCALE_MODE_FIT_WIDTH);
     },
 
     setToFitHeight: function() {
-        this.scaleMode = SCALE_MODE_FIT_HEIGHT;
-        this.calculateScale();
-        this.layout();
-    },
-
-    onResize: function() {
-        this.calculateScale();
-        this.layout();
+        this.setScaleMode(SCALE_MODE_FIT_HEIGHT);
     },
 
     // Calculates the new scale. Returns `true` if the scale changed.
@@ -267,6 +280,10 @@ ListView.prototype = {
         var scaleMode = this.scaleMode;
         if (scaleMode === SCALE_MODE_FIT_WIDTH || scaleMode === SCALE_MODE_AUTO) {
             var clientWidth = this.dom.clientWidth;
+            if (clientWidth == 0) {
+                logger.debug("LIST VIEW NOT VISIBLE")
+                return false;
+            }
             var maxNormalWidth = 0;
             this.containerViews.forEach(function(containerView) {
                 maxNormalWidth = Math.max(maxNormalWidth, containerView.normalWidth);
@@ -278,6 +295,10 @@ ListView.prototype = {
             newScale = scale;
         } else if (scaleMode === SCALE_MODE_FIT_HEIGHT) {
             var clientHeight = this.dom.clientHeight;
+            if (clientHeight == 0) {
+                logger.debug("LIST VIEW NOT VISIBLE")
+                return false;
+            }
             var maxNormalHeight = 0;
             this.containerViews.forEach(function(containerView) {
                 maxNormalHeight = Math.max(maxNormalHeight, containerView.normalHeight);
@@ -337,11 +358,22 @@ ListView.prototype = {
 
     savePdfPosition: function() {
         delete this.pdfPosition;
+        this.pdfPosition = this.getPdfPosition();
+        logger.debug("SAVED PDF POSITION", this.pdfPosition);
+    },
+
+    restorePdfPosition: function() {
+        logger.debug("RESTORING PDF POSITION", this.pdfPosition);
+        this.setPdfPosition(this.pdfPosition);
+    },
+
+    getPdfPosition: function() {
+        var pdfPosition = null;
         for (var i = 0; i < this.pageViews.length; i++) {
             var pageView = this.pageViews[i];
             var pdfOffset = pageView.getUppermostVisiblePdfOffset();
             if (pdfOffset !== null) {
-                this.pdfPosition = {
+                pdfPosition = {
                     page: i,
                     offset: {
                         top: pdfOffset,
@@ -351,14 +383,13 @@ ListView.prototype = {
                 break;
             }
         }
-        logger.debug("SAVED PDF POSITION", this.pdfPosition);
+        return pdfPosition;
     },
 
-    restorePdfPosition: function() {
-        if (typeof this.pdfPosition !== "undefined") {
-            logger.debug("RESTORING PDF POSITION", this.pdfPosition);
-            var offset = this.pdfPosition.offset;
-            var page_index = this.pdfPosition.page;
+    setPdfPosition: function(pdfPosition) {
+        if (typeof pdfPosition !== "undefined" && pdfPosition != null) {
+            var offset = pdfPosition.offset;
+            var page_index = pdfPosition.page;
             var pageView = this.pageViews[page_index];
             var position = pageView.getPdfPositionInViewer(offset.left, offset.top);
             this.dom.scrollTop = position.top;
@@ -747,6 +778,15 @@ PDFListView.prototype = {
         return this.listView.getScale();
     },
 
+    getScaleMode: function() {
+        return this.listView.getScaleMode()
+    },
+
+    setScaleMode: function(scaleMode, scale) {
+        this.listView.setScaleMode(scaleMode, scale);
+        this.renderController.updateRenderList();
+    },
+
     setScale: function(scale) {
         this.listView.setScale(scale);
         this.renderController.updateRenderList();
@@ -768,7 +808,15 @@ PDFListView.prototype = {
     },
 
     onResize: function() {
-        this.listView.onResize();
+        this.renderController.onResize();
+    },
+
+    getPdfPosition: function() {
+        return this.listView.getPdfPosition();
+    },
+
+    setPdfPosition: function(pdfPosition) {
+        this.listView.setPdfPosition(pdfPosition)
     }
 };
 PDFListView.Logger = Logger;
