@@ -350,7 +350,6 @@ ListView.prototype = {
     },
 
     savePdfPosition: function() {
-        delete this.pdfPosition;
         this.pdfPosition = this.getPdfPosition();
         logger.debug("SAVED PDF POSITION", this.pdfPosition);
     },
