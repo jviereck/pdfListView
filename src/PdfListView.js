@@ -49,14 +49,6 @@ function failDumper(err) {
 
 if (typeof(PDFJS) === "undefined") {
     logger.error("PDF.js is not yet loaded.");
-} else {
-    PDFJS.Promise.prototype.thenThis = function(scope, callback, errback, progressback) {
-        return this.then(
-            callback ? callback.bind(scope) : undefined,
-            errback ? errback.bind(scope) : undefined,
-            progressback ? progressback.bind(scope) : undefined
-        );
-    };
 }
 
 // -----------------------------------------------------------------------------
@@ -75,8 +67,8 @@ function Document(url, password, onProgress) {
       parameters.data = url;
     }
 
-    this.initialized = new PDFJS.Promise();
-    PDFJS.getDocument(parameters, null, null, onProgress).thenThis(this, this.loadPages, failDumper);
+    this.initialized = new PDFJS.LegacyPromise();
+    PDFJS.getDocument(parameters, null, null, onProgress).then(this.loadPages.bind(this), failDumper);
 }
 
 Document.prototype.loadPages = function(pdfDocument) {
@@ -89,9 +81,10 @@ Document.prototype.loadPages = function(pdfDocument) {
     }
 
     this.pageRefMap = pageRefMap = {};
-    var pagesPromise = PDFJS.Promise.all(pagePromises);
-    pagesPromise.thenThis(this, function(promisedPages) {
-        this.pages = promisedPages.map(function(pdfPage, i) {
+    var pagesPromise = Promise.all(pagePromises);
+    var doc = this
+    pagesPromise.then(function(promisedPages) {
+        doc.pages = promisedPages.map(function(pdfPage, i) {
             var pageRef = pdfPage.ref
             pageRefMap[pageRef.num + ' ' + pageRef.gen] = i;
             return new Page(pdfPage);
@@ -99,12 +92,12 @@ Document.prototype.loadPages = function(pdfDocument) {
     });
 
     var destinationsPromise = pdfDocument.getDestinations();
-    destinationsPromise.thenThis(this, function(destinations) {
-        this.destinations = destinations;
+    destinationsPromise.then(function(destinations) {
+        doc.destinations = destinations;
     });
 
-    PDFJS.Promise.all([pagesPromise, destinationsPromise]).thenThis(this, function() {
-        this.initialized.resolve();
+    Promise.all([pagesPromise, destinationsPromise]).then(function() {
+        doc.initialized.resolve();
     }, failDumper);
 };
 
@@ -713,7 +706,7 @@ Page.prototype = {
             this.renderContextList[pageView.id] = renderContext;
 
             logger.debug("BEGIN", pageView.id);
-            renderContext.renderPromise = this.pdfPage.render(renderContext);
+            renderContext.renderPromise = this.pdfPage.render(renderContext).promise;
             renderContext.renderPromise.then(
               function pdfPageRenderCallback() {
                 logger.debug('DONE', pageView.id);
