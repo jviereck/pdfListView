@@ -1,3 +1,9 @@
+(function (name, context, definition) {
+  if (typeof module != 'undefined' && module.exports) module.exports = definition()
+  else if (typeof define == 'function' && define.amd) define(definition)
+  else context[name] = definition()
+})('TextLayerBuilder', this, function (name, context) {
+
 // optimised CSS custom property getter/setter
 var CustomStyle = (function CustomStyleClosure() {
 
@@ -179,3 +185,6 @@ TextLayerBuilder.prototype = {
     }*/
 };
 
+return TextLayerBuilder;
+
+});

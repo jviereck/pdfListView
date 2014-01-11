@@ -19,11 +19,15 @@
     <!-- File from the PDF.JS Library -->
     <script type="text/javascript" src="external/compatibility.js"></script>
     <script type="text/javascript" src="external/pdf.js"></script>
-    <script type="text/javascript">PDFJS.workerSrc = 'external/pdf.js';</script>
+    <script type="text/javascript">PDFJS.workerSrc = 'external/pdf.worker.js';</script>
 
     <!-- Leave out the following two files if you don't need a textLayer -->
     <link rel="stylesheet" href="src/TextLayer.css">
     <script src="src/TextLayerBuilder.js"></script>
+
+    <!-- Leave out the following two files if you don't need an annotations layer -->
+    <link rel="stylesheet" href="src/AnnotationsLayer.css">
+    <script src="src/AnnotationsLayerBuilder.js"></script>
 
     <!-- Core pdfListView file -->
     <script src="src/PdfListView.js"></script>
@@ -41,6 +45,7 @@
         {
             // Comment out the next line to get a listView without textLayer.
             textLayerBuilder: TextLayerBuilder,
+            annotationsLayerBuilder: AnnotationsLayerBuilder,
             logLevel: PDFListView.Logger.DEBUG
         }
     );

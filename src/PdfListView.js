@@ -49,14 +49,6 @@ function failDumper(err) {
 
 if (typeof(PDFJS) === "undefined") {
     logger.error("PDF.js is not yet loaded.");
-} else {
-    PDFJS.Promise.prototype.thenThis = function(scope, callback, errback, progressback) {
-        return this.then(
-            callback ? callback.bind(scope) : undefined,
-            errback ? errback.bind(scope) : undefined,
-            progressback ? progressback.bind(scope) : undefined
-        );
-    };
 }
 
 // -----------------------------------------------------------------------------
@@ -64,7 +56,7 @@ if (typeof(PDFJS) === "undefined") {
 /**
  * Wrapper around the raw PDF.JS document.
  */
-function Document(url, password) {
+function Document(url, password, onProgress) {
     this.pdfDocument = null;
     this.pages = null;
 
@@ -75,8 +67,8 @@ function Document(url, password) {
       parameters.data = url;
     }
 
-    this.initialized = new PDFJS.Promise();
-    PDFJS.getDocument(parameters).thenThis(this, this.loadPages, failDumper, this.onLoadProgress);
+    this.initialized = new PDFJS.LegacyPromise();
+    PDFJS.getDocument(parameters, null, null, onProgress).then(this.loadPages.bind(this), failDumper);
 }
 
 Document.prototype.loadPages = function(pdfDocument) {
@@ -88,18 +80,25 @@ Document.prototype.loadPages = function(pdfDocument) {
         pagePromises.push(pdfDocument.getPage(i));
     }
 
-    var pagesPromise = PDFJS.Promise.all(pagePromises);
-    pagesPromise.thenThis(this, function(promisedPages) {
-        this.pages = promisedPages.map(function(pdfPage) {
+    this.pageRefMap = pageRefMap = {};
+    var pagesPromise = Promise.all(pagePromises);
+    var doc = this
+    pagesPromise.then(function(promisedPages) {
+        doc.pages = promisedPages.map(function(pdfPage, i) {
+            var pageRef = pdfPage.ref
+            pageRefMap[pageRef.num + ' ' + pageRef.gen] = i;
             return new Page(pdfPage);
         });
+    });
 
-        this.initialized.resolve();
+    var destinationsPromise = pdfDocument.getDestinations();
+    destinationsPromise.then(function(destinations) {
+        doc.destinations = destinations;
+    });
+
+    Promise.all([pagesPromise, destinationsPromise]).then(function() {
+        doc.initialized.resolve();
     }, failDumper);
-};
-
-Document.prototype.onLoadProgress = function() {
-    this.initialized.progress.apply(this.initialized, arguments);
 };
 
 /**
@@ -151,6 +150,19 @@ RenderController.prototype = {
         if (idx !== -1) {
             this.renderList.splice(idx, 1);
             this.doRender();
+        }
+    },
+
+    onResize: function() {
+        var renderAgain = false
+        this.listViews.map(function(listView) {
+            if (listView.calculateScale()) {
+                listView.layout();
+                renderAgain = true;
+            }
+        });
+        if (renderAgain) {
+            this.updateRenderList();
         }
     }
 };
@@ -214,37 +226,44 @@ ListView.prototype = {
     },
 
     layout: function() {
+        this.savePdfPosition();
         this.containerViews.forEach(function(containerView) {
             containerView.layout();
         });
+        this.restorePdfPosition();
     },
 
     getScale: function() {
         return this.scale;
     },
 
-    setScale: function(scale) {
-        this.scaleMode = SCALE_MODE_VALUE;
-        this.scale = scale;
+    getScaleMode: function() {
+        return this.scaleMode;
+    },
+
+    setScaleMode: function(scaleMode, scale) {
+        this.scaleMode = scaleMode;
+        if (scaleMode == SCALE_MODE_VALUE) {
+            this.scale = scale;
+        }
+        this.calculateScale();
         this.layout();
+    },
+
+    setScale: function(scale) {
+        this.setScaleMode(SCALE_MODE_VALUE, scale);
     },
 
     setToAutoScale: function() {
-        this.scaleMode = SCALE_MODE_AUTO;
-        this.calculateScale();
-        this.layout();
+        this.setScaleMode(SCALE_MODE_AUTO);
     },
 
     setToFitWidth: function() {
-        this.scaleMode = SCALE_MODE_FIT_WIDTH;
-        this.calculateScale();
-        this.layout();
+        this.setScaleMode(SCALE_MODE_FIT_WIDTH);
     },
 
     setToFitHeight: function() {
-        this.scaleMode = SCALE_MODE_FIT_HEIGHT;
-        this.calculateScale();
-        this.layout();
+        this.setScaleMode(SCALE_MODE_FIT_HEIGHT);
     },
 
     // Calculates the new scale. Returns `true` if the scale changed.
@@ -254,6 +273,10 @@ ListView.prototype = {
         var scaleMode = this.scaleMode;
         if (scaleMode === SCALE_MODE_FIT_WIDTH || scaleMode === SCALE_MODE_AUTO) {
             var clientWidth = this.dom.clientWidth;
+            if (clientWidth == 0) {
+                logger.debug("LIST VIEW NOT VISIBLE")
+                return false;
+            }
             var maxNormalWidth = 0;
             this.containerViews.forEach(function(containerView) {
                 maxNormalWidth = Math.max(maxNormalWidth, containerView.normalWidth);
@@ -265,6 +288,10 @@ ListView.prototype = {
             newScale = scale;
         } else if (scaleMode === SCALE_MODE_FIT_HEIGHT) {
             var clientHeight = this.dom.clientHeight;
+            if (clientHeight == 0) {
+                logger.debug("LIST VIEW NOT VISIBLE")
+                return false;
+            }
             var maxNormalHeight = 0;
             this.containerViews.forEach(function(containerView) {
                 maxNormalHeight = Math.max(maxNormalHeight, containerView.normalHeight);
@@ -289,6 +316,76 @@ ListView.prototype = {
                 return true;
             }
         });
+    },
+
+    navigateTo: function(destRef) {
+        var destination = this.pdfDoc.destinations[destRef]
+        if (typeof destination !== "object") {
+            return;
+        }
+        logger.debug("NAVIGATING TO", destination);
+
+        var pageRef = destination[0];
+        var pageNumber = this.pdfDoc.pageRefMap[pageRef.num + ' ' + pageRef.gen];
+        if (typeof pageNumber !== "number") {
+            return;
+        }
+        logger.debug("PAGE NUMBER", pageNumber);
+
+        var pageView = this.pageViews[pageNumber];
+
+        var destinationType = destination[1].name;
+        switch(destinationType) {
+            case "XYZ":
+                var x = destination[2];
+                var y = destination[3];
+                break;
+            default:
+                // TODO
+                return;
+        }
+        var position = pageView.getPdfPositionInViewer(x,y);
+        this.dom.scrollTop = position.top;
+        this.dom.scrollLeft = position.left;
+    },
+
+    savePdfPosition: function() {
+        this.pdfPosition = this.getPdfPosition();
+        logger.debug("SAVED PDF POSITION", this.pdfPosition);
+    },
+
+    restorePdfPosition: function() {
+        logger.debug("RESTORING PDF POSITION", this.pdfPosition);
+        this.setPdfPosition(this.pdfPosition);
+    },
+
+    getPdfPosition: function() {
+        var pdfPosition = null;
+        for (var i = 0; i < this.pageViews.length; i++) {
+            var pageView = this.pageViews[i];
+            var pdfOffset = pageView.getUppermostVisiblePdfOffset();
+            if (pdfOffset !== null) {
+                pdfPosition = {
+                    page: i,
+                    offset: {
+                        top: pdfOffset,
+                        left: 0 // TODO
+                    }
+                }
+                break;
+            }
+        }
+        return pdfPosition;
+    },
+
+    setPdfPosition: function(pdfPosition) {
+        if (typeof pdfPosition !== "undefined" && pdfPosition != null) {
+            var offset = pdfPosition.offset;
+            var page_index = pdfPosition.page;
+            var pageView = this.pageViews[page_index];
+            var position = pageView.getPdfPositionInViewer(offset.left, offset.top);
+            this.dom.scrollTop = position.top;
+        }
     }
 };
 
@@ -408,6 +505,14 @@ PageView.prototype = {
     resetRenderState: function() {
         this.renderState = RenderingStates.INITIAL;
         this.isRendered = false;
+        if (this.textLayerDiv) {
+            this.dom.removeChild(this.textLayerDiv);
+            delete this.textLayerDiv;
+        }
+        if (this.annotationsLayerDiv) {
+            this.dom.removeChild(this.annotationsLayerDiv);
+            delete this.annotationsLayerDiv;
+        }
     },
 
     render: function(renderController) {
@@ -425,6 +530,67 @@ PageView.prototype = {
         var canvas = this.canvas = document.createElement('canvas');
         this.dom.appendChild(canvas);
         this.layout();
+    },
+
+    pdfPositionToPixels: function(x, y) {
+        return this.viewport.convertToViewportPoint(x, y);
+    },
+
+    getCanvasPositionInViewer: function() {
+        return {
+            left: this.canvas.offsetLeft + this.dom.offsetLeft,
+            top: this.canvas.offsetTop + this.dom.offsetTop
+        }
+    },
+
+    getPdfPositionInViewer: function(x, y) {
+        pageOffset = this.pdfPositionToPixels(x, y);
+        canvasOffset = this.getCanvasPositionInViewer();
+        return {
+            left: canvasOffset.left + pageOffset[0],
+            top: canvasOffset.top + pageOffset[1]
+        }
+    },
+
+    getUppermostVisibleCanvasOffset: function() {
+        var pagePosition = this.getCanvasPositionInViewer();
+        var pageHeight = this.canvas.height;
+        var viewportTop = this.listView.dom.scrollTop;
+        var viewportHeight = this.listView.dom.clientHeight;
+        // Check if the top of the page is showing, i.e:
+        // _______________
+        // |             |
+        // |   ........  |
+        // |   .      .  |
+        // ----.------.---
+        //     .      .
+        //     ........
+        var topVisible = (pagePosition.top > viewportTop && pagePosition.top < viewportTop + viewportHeight);
+        // Check if at least some of the page is showing, i.e:
+        //     ........                 ........
+        // ____.______.___           ---.------.---
+        // |   .      .  |     or    |  .      .  |
+        // |   .      .  |           |  .      .  |
+        // |   ........  |           |  .      .  |
+        // ---------------           ---.------.---
+        //                              ........
+        var someContentVisible = (pagePosition.top < viewportTop && pagePosition.top + pageHeight > viewportTop);
+        if (topVisible) {
+            return 0;
+        } else if (someContentVisible) {
+            return viewportTop - pagePosition.top;
+        } else {
+            return null;
+        }
+    },
+
+    getUppermostVisiblePdfOffset: function() {
+        var canvasOffset = this.getUppermostVisibleCanvasOffset();
+        if (canvasOffset === null) {
+            return null;
+        }
+        var pdfOffset = this.viewport.convertToPdfPoint(0, canvasOffset);
+        return pdfOffset[1];
     }
 };
 
@@ -489,14 +655,27 @@ Page.prototype = {
             var textLayer;
             var textLayerBuilder = pageView.listView.options.textLayerBuilder;
             if (textLayerBuilder) {
-                var textLayerDiv = document.createElement("div");
+                var textLayerDiv = pageView.textLayerDiv = document.createElement("div");
                 textLayerDiv.className = 'plv-text-layer text-layer';
                 pageView.dom.appendChild(textLayerDiv);
-                textLayer = new TextLayerBuilder(textLayerDiv);
+                textLayer = new textLayerBuilder(textLayerDiv);
                 this.pdfPage.getTextContent().then(
                   function(textContent) {
                     textLayer.setTextContent(textContent);
                   }
+                );
+            }
+
+            var annotationsLayerBuilder = pageView.listView.options.annotationsLayerBuilder;
+            if (annotationsLayerBuilder) {
+                var annotationsLayerDiv = pageView.annotationsLayerDiv = document.createElement("div");
+                annotationsLayerDiv.className = 'plv-annotations-layer annotations-layer';
+                pageView.dom.appendChild(annotationsLayerDiv);
+                var annotationsLayer = new annotationsLayerBuilder(pageView, annotationsLayerDiv);
+                this.pdfPage.getAnnotations().then(
+                    function(annotations) {
+                        annotationsLayer.setAnnotations(annotations)
+                    }
                 );
             }
 
@@ -526,7 +705,7 @@ Page.prototype = {
             this.renderContextList[pageView.id] = renderContext;
 
             logger.debug("BEGIN", pageView.id);
-            renderContext.renderPromise = this.pdfPage.render(renderContext);
+            renderContext.renderPromise = this.pdfPage.render(renderContext).promise;
             renderContext.renderPromise.then(
               function pdfPageRenderCallback() {
                 logger.debug('DONE', pageView.id);
@@ -575,8 +754,8 @@ function PDFListView(mainDiv, options) {
 }
 
 PDFListView.prototype = {
-    loadPdf: function(url) {
-        this.doc = new Document(url);
+    loadPdf: function(url, onProgress) {
+        this.doc = new Document(url, null, onProgress);
         var self = this;
         var promise = this.doc.initialized;
         promise.then(function() {
@@ -589,6 +768,15 @@ PDFListView.prototype = {
 
     getScale: function() {
         return this.listView.getScale();
+    },
+
+    getScaleMode: function() {
+        return this.listView.getScaleMode()
+    },
+
+    setScaleMode: function(scaleMode, scale) {
+        this.listView.setScaleMode(scaleMode, scale);
+        this.renderController.updateRenderList();
     },
 
     setScale: function(scale) {
@@ -609,6 +797,18 @@ PDFListView.prototype = {
     setToFitHeight: function() {
         this.listView.setToFitHeight();
         this.renderController.updateRenderList();
+    },
+
+    onResize: function() {
+        this.renderController.onResize();
+    },
+
+    getPdfPosition: function() {
+        return this.listView.getPdfPosition();
+    },
+
+    setPdfPosition: function(pdfPosition) {
+        this.listView.setPdfPosition(pdfPosition)
     }
 };
 PDFListView.Logger = Logger;
