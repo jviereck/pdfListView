@@ -103,7 +103,7 @@ TextLayerBuilder.prototype = {
         this.divContentDone = true;
 
         var textDivs = this.textDivs;
-        var bidiTexts = this.textContent.bidiTexts;
+        var bidiTexts = this.textContent;
 
         for (var i = 0; i < bidiTexts.length; i++) {
             var bidiText = bidiTexts[i];
@@ -124,7 +124,7 @@ TextLayerBuilder.prototype = {
     renderLayer: function() {
         var self = this;
         var textDivs = this.textDivs;
-        var bidiTexts = this.textContent.bidiTexts;
+        var bidiTexts = this.textContent;
         var textLayerDiv = this.textLayerDiv;
         var canvas = document.createElement('canvas');
         var ctx = canvas.getContext('2d');
