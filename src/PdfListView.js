@@ -809,6 +809,11 @@ PDFListView.prototype = {
 
     setPdfPosition: function(pdfPosition) {
         this.listView.setPdfPosition(pdfPosition)
+    },
+        
+    clearPages: function() {
+        this.listView.clearPages();
+        this.renderController.updateRenderList();
     }
 };
 PDFListView.Logger = Logger;
