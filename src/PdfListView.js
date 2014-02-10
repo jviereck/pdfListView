@@ -540,16 +540,16 @@ PageView.prototype = {
         return {
             left: this.canvas.offsetLeft + this.dom.offsetLeft,
             top: this.canvas.offsetTop + this.dom.offsetTop
-        }
+        };
     },
 
     getPdfPositionInViewer: function(x, y) {
-        pageOffset = this.pdfPositionToPixels(x, y);
-        canvasOffset = this.getCanvasPositionInViewer();
+        var pageOffset = this.pdfPositionToPixels(x, y);
+        var canvasOffset = this.getCanvasPositionInViewer();
         return {
             left: canvasOffset.left + pageOffset[0],
             top: canvasOffset.top + pageOffset[1]
-        }
+        };
     },
 
     getUppermostVisibleCanvasOffset: function() {
@@ -808,7 +808,7 @@ PDFListView.prototype = {
     },
 
     setPdfPosition: function(pdfPosition) {
-        this.listView.setPdfPosition(pdfPosition)
+        this.listView.setPdfPosition(pdfPosition);
     },
         
     clearPages: function() {
