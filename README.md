@@ -21,9 +21,8 @@ A simple list view to render a PDF document using [PDF.JS](https://github.com/mo
 - full-screen support
 - form support
 - annotation support
-- more APIS: go to next/previous page, rotatePage, ...
+- more APIs: go to next/previous page, rotatePage, ...
 - indicator (spinner) when page has not finished rendering
-- text selection
 - search
 - printing (as much as this is possible with current browsers)
 
