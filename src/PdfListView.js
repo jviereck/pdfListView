@@ -80,9 +80,10 @@ Document.prototype.loadPages = function(pdfDocument) {
         pagePromises.push(pdfDocument.getPage(i));
     }
 
-    this.pageRefMap = pageRefMap = {};
+    var pageRefMap = {};
+    this.pageRefMap = pageRefMap;
     var pagesPromise = Promise.all(pagePromises);
-    var doc = this
+    var doc = this;
     pagesPromise.then(function(promisedPages) {
         doc.pages = promisedPages.map(function(pdfPage, i) {
             var pageRef = pdfPage.ref
@@ -154,7 +155,7 @@ RenderController.prototype = {
     },
 
     onResize: function() {
-        var renderAgain = false
+        var renderAgain = false;
         this.listViews.map(function(listView) {
             if (listView.calculateScale()) {
                 listView.layout();
@@ -274,7 +275,7 @@ ListView.prototype = {
         if (scaleMode === SCALE_MODE_FIT_WIDTH || scaleMode === SCALE_MODE_AUTO) {
             var clientWidth = this.dom.clientWidth;
             if (clientWidth == 0) {
-                logger.debug("LIST VIEW NOT VISIBLE")
+                logger.debug("LIST VIEW NOT VISIBLE");
                 return false;
             }
             var maxNormalWidth = 0;
@@ -289,7 +290,7 @@ ListView.prototype = {
         } else if (scaleMode === SCALE_MODE_FIT_HEIGHT) {
             var clientHeight = this.dom.clientHeight;
             if (clientHeight == 0) {
-                logger.debug("LIST VIEW NOT VISIBLE")
+                logger.debug("LIST VIEW NOT VISIBLE");
                 return false;
             }
             var maxNormalHeight = 0;
@@ -319,7 +320,7 @@ ListView.prototype = {
     },
 
     navigateTo: function(destRef) {
-        var destination = this.pdfDoc.destinations[destRef]
+        var destination = this.pdfDoc.destinations[destRef];
         if (typeof destination !== "object") {
             return;
         }
@@ -381,8 +382,8 @@ ListView.prototype = {
     setPdfPosition: function(pdfPosition) {
         if (typeof pdfPosition !== "undefined" && pdfPosition != null) {
             var offset = pdfPosition.offset;
-            var page_index = pdfPosition.page;
-            var pageView = this.pageViews[page_index];
+            var pageIndex = pdfPosition.page;
+            var pageView = this.pageViews[pageIndex];
             var position = pageView.getPdfPositionInViewer(offset.left, offset.top);
             this.dom.scrollTop = position.top;
         }
@@ -540,16 +541,16 @@ PageView.prototype = {
         return {
             left: this.canvas.offsetLeft + this.dom.offsetLeft,
             top: this.canvas.offsetTop + this.dom.offsetTop
-        }
+        };
     },
 
     getPdfPositionInViewer: function(x, y) {
-        pageOffset = this.pdfPositionToPixels(x, y);
-        canvasOffset = this.getCanvasPositionInViewer();
+        var pageOffset = this.pdfPositionToPixels(x, y);
+        var canvasOffset = this.getCanvasPositionInViewer();
         return {
             left: canvasOffset.left + pageOffset[0],
             top: canvasOffset.top + pageOffset[1]
-        }
+        };
     },
 
     getUppermostVisibleCanvasOffset: function() {
@@ -674,7 +675,7 @@ Page.prototype = {
                 var annotationsLayer = new annotationsLayerBuilder(pageView, annotationsLayerDiv);
                 this.pdfPage.getAnnotations().then(
                     function(annotations) {
-                        annotationsLayer.setAnnotations(annotations)
+                        annotationsLayer.setAnnotations(annotations);
                     }
                 );
             }
@@ -771,7 +772,7 @@ PDFListView.prototype = {
     },
 
     getScaleMode: function() {
-        return this.listView.getScaleMode()
+        return this.listView.getScaleMode();
     },
 
     setScaleMode: function(scaleMode, scale) {
@@ -808,7 +809,12 @@ PDFListView.prototype = {
     },
 
     setPdfPosition: function(pdfPosition) {
-        this.listView.setPdfPosition(pdfPosition)
+        this.listView.setPdfPosition(pdfPosition);
+    },
+        
+    clearPages: function() {
+        this.listView.clearPages();
+        this.renderController.updateRenderList();
     }
 };
 PDFListView.Logger = Logger;
