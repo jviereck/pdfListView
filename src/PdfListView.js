@@ -67,7 +67,7 @@ function Document(url, password, onProgress) {
       parameters.data = url;
     }
 
-    this.initialized = new PDFJS.LegacyPromise();
+    this.initialized = new PDFJS.createPromiseCapability();
     PDFJS.getDocument(parameters, null, null, onProgress).then(this.loadPages.bind(this), failDumper);
 }
 
@@ -758,7 +758,7 @@ PDFListView.prototype = {
     loadPdf: function(url, onProgress) {
         this.doc = new Document(url, null, onProgress);
         var self = this;
-        var promise = this.doc.initialized;
+        var promise = this.doc.initialized.promise;
         promise.then(function() {
             logger.debug('LOADED');
             self.listView.setDocument(self.doc);
@@ -811,7 +811,7 @@ PDFListView.prototype = {
     setPdfPosition: function(pdfPosition) {
         this.listView.setPdfPosition(pdfPosition);
     },
-        
+
     clearPages: function() {
         this.listView.clearPages();
         this.renderController.updateRenderList();
@@ -822,4 +822,3 @@ PDFListView.Logger = Logger;
 return PDFListView;
 
 });
-
