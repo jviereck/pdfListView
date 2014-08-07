@@ -539,8 +539,8 @@ PageView.prototype = {
 
     getCanvasPositionInViewer: function() {
         return {
-            left: this.canvas.offsetLeft + this.dom.offsetLeft,
-            top: this.canvas.offsetTop + this.dom.offsetTop
+            left: this.dom.offsetLeft,
+            top: this.dom.offsetTop
         };
     },
 
