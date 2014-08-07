@@ -539,8 +539,8 @@ PageView.prototype = {
 
     getCanvasPositionInViewer: function() {
         return {
-            left: this.canvas.offsetLeft + this.dom.offsetLeft,
-            top: this.canvas.offsetTop + this.dom.offsetTop
+            left: this.dom.offsetLeft,
+            top: this.dom.offsetTop
         };
     },
 
@@ -566,7 +566,7 @@ PageView.prototype = {
         // ----.------.---
         //     .      .
         //     ........
-        var topVisible = (pagePosition.top > viewportTop && pagePosition.top < viewportTop + viewportHeight);
+        var topVisible = (pagePosition.top >= viewportTop && pagePosition.top < viewportTop + viewportHeight);
         // Check if at least some of the page is showing, i.e:
         //     ........                 ........
         // ____.______.___           ---.------.---
