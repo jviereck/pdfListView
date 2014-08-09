@@ -566,7 +566,7 @@ PageView.prototype = {
         // ----.------.---
         //     .      .
         //     ........
-        var topVisible = (pagePosition.top > viewportTop && pagePosition.top < viewportTop + viewportHeight);
+        var topVisible = (pagePosition.top >= viewportTop && pagePosition.top < viewportTop + viewportHeight);
         // Check if at least some of the page is showing, i.e:
         //     ........                 ........
         // ____.______.___           ---.------.---
