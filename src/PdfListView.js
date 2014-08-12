@@ -455,7 +455,7 @@ function PageView(page, listView) {
     this.id = idCounter++;
     this.number = this.page.number;
 
-    this.rotation = 0;
+    this.rotation = page.rotation;
 
     this.isRendered = false;
     this.renderState = RenderingStates.INITIAL;
