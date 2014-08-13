@@ -455,7 +455,7 @@ function PageView(page, listView) {
     this.id = idCounter++;
     this.number = this.page.number;
 
-    this.rotation = page.rotation;
+    this.rotation = page.pdfPage.rotate;
 
     this.isRendered = false;
     this.renderState = RenderingStates.INITIAL;
