@@ -455,7 +455,7 @@ function PageView(page, listView) {
     this.id = idCounter++;
     this.number = this.page.number;
 
-    this.rotation = 0;
+    this.rotation = page.pdfPage.rotate;
 
     this.isRendered = false;
     this.renderState = RenderingStates.INITIAL;
@@ -634,7 +634,7 @@ Page.prototype = {
 
             // TODO: handle rotation
             if (viewport.height !== pageView.viewport.height ||
-                viewport.height !== pageView.viewport.height)
+                viewport.width !== pageView.viewport.width)
             {
                 // The viewport changed -> need to rerender.
                 renderContext.abandon = true;
