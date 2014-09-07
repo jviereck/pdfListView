@@ -227,11 +227,11 @@ ListView.prototype = {
     },
 
     layout: function() {
-        this.savePdfPosition();
+        var positionBackup = this.getPdfPosition();
         this.containerViews.forEach(function(containerView) {
             containerView.layout();
         });
-        this.restorePdfPosition();
+        this.setPdfPosition(positionBackup);
     },
 
     getScale: function() {
@@ -350,16 +350,6 @@ ListView.prototype = {
         this.dom.scrollLeft = position.left;
     },
 
-    savePdfPosition: function() {
-        this.pdfPosition = this.getPdfPosition();
-        logger.debug("SAVED PDF POSITION", this.pdfPosition);
-    },
-
-    restorePdfPosition: function() {
-        logger.debug("RESTORING PDF POSITION", this.pdfPosition);
-        this.setPdfPosition(this.pdfPosition);
-    },
-
     getPdfPosition: function() {
         var pdfPosition = null;
         for (var i = 0; i < this.pageViews.length; i++) {
@@ -380,7 +370,7 @@ ListView.prototype = {
     },
 
     setPdfPosition: function(pdfPosition) {
-        if (typeof pdfPosition !== "undefined" && pdfPosition != null) {
+        if (pdfPosition) {
             var offset = pdfPosition.offset;
             var pageIndex = pdfPosition.page;
             var pageView = this.pageViews[pageIndex];
@@ -508,11 +498,11 @@ PageView.prototype = {
         this.isRendered = false;
         if (this.textLayerDiv) {
             this.dom.removeChild(this.textLayerDiv);
-            delete this.textLayerDiv;
+            this.textLayerDiv = null;
         }
         if (this.annotationsLayerDiv) {
             this.dom.removeChild(this.annotationsLayerDiv);
-            delete this.annotationsLayerDiv;
+            this.annotationsLayerDiv = null;
         }
     },
 
@@ -638,7 +628,7 @@ Page.prototype = {
             {
                 // The viewport changed -> need to rerender.
                 renderContext.abandon = true;
-                delete self.renderContextList[pageView.id];
+                self.renderContextList[pageView.id] = null;
                 pageView.createNewCanvas();
                 self.render(pageView, renderController);
             } else if (renderContext.state === RenderingStates.PAUSED) {
