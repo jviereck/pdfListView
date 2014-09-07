@@ -4,6 +4,8 @@
   else context[name] = definition()
 })('TextLayerBuilder', this, function (name, context) {
 
+var MAX_TEXT_DIVS_TO_RENDER = 100000;
+
 // optimised CSS custom property getter/setter
 var CustomStyle = (function CustomStyleClosure() {
 
@@ -55,134 +57,91 @@ var CustomStyle = (function CustomStyleClosure() {
   return CustomStyle;
 })();
 
-function TextLayerBuilder(textLayerDiv) {
+function TextLayerBuilder(textLayerDiv, viewport) {
+    this.textDivs = [];
     this.textLayerDiv = textLayerDiv;
+    this.viewport = viewport;
 };
 
 TextLayerBuilder.prototype = {
-    beginLayout: function() {
-        this.textDivs = [];
-        this.textLayerQueue = [];
-        this.renderingDone = false;
-    },
-
-    endLayout: function() {
-        this.layoutDone = true;
-        this.insertDivContent();
-    },
-
-    appendText: function(geom) {
+    appendText: function TextLayerBuilder_appendText(geom, styles) {
+        var style = styles[geom.fontName];
         var textDiv = document.createElement('div');
-
-        // vScale and hScale already contain the scaling to pixel units
-        var fontHeight = geom.fontSize * Math.abs(geom.vScale);
-        textDiv.dataset.canvasWidth = geom.canvasWidth * geom.hScale;
-        textDiv.dataset.fontName = geom.fontName;
-
-        textDiv.style.fontSize = fontHeight + 'px';
-        textDiv.style.fontFamily = geom.fontFamily;
-        textDiv.style.left = geom.x + 'px';
-        textDiv.style.top = (geom.y - fontHeight) + 'px';
-
-        // The content of the div is set in the `setTextContent` function.
-
         this.textDivs.push(textDiv);
-    },
-
-    setTextContent: function(textContent) {
-        this.textContent = textContent;
-        this.insertDivContent();
-    },
-
-    insertDivContent: function() {
-        // Only set the content of the divs once layout has finished, the content
-        // for the divs is available and content is not yet set on the divs.
-        if (!this.layoutDone || this.divContentDone || !this.textContent)
-            return;
-
-        this.divContentDone = true;
-
-        var textDivs = this.textDivs;
-        var bidiTexts = this.textContent;
-
-        for (var i = 0; i < bidiTexts.length; i++) {
-            var bidiText = bidiTexts[i];
-            var textDiv = textDivs[i];
-            if (!/\S/.test(bidiText.str)) {
-                textDiv.dataset.isWhitespace = true;
-                continue;
-            }
-
-            textDiv.textContent = bidiText.str;
-            // bidiText.dir may be 'ttb' for vertical texts.
-            textDiv.dir = bidiText.dir === 'rtl' ? 'rtl' : 'ltr';
+        if (!/\S/.test(geom.str)) {
+          textDiv.dataset.isWhitespace = true;
+          return;
         }
+        var tx = PDFJS.Util.transform(this.viewport.transform, geom.transform);
+        var angle = Math.atan2(tx[1], tx[0]);
+        if (style.vertical) {
+          angle += Math.PI / 2;
+        }
+        var fontHeight = Math.sqrt((tx[2] * tx[2]) + (tx[3] * tx[3]));
+        var fontAscent = (style.ascent ? style.ascent * fontHeight :
+          (style.descent ? (1 + style.descent) * fontHeight : fontHeight));
 
-        this.renderLayer();
+        textDiv.style.position = 'absolute';
+        textDiv.style.left = (tx[4] + (fontAscent * Math.sin(angle))) + 'px';
+        textDiv.style.top = (tx[5] - (fontAscent * Math.cos(angle))) + 'px';
+        textDiv.style.fontSize = fontHeight + 'px';
+        textDiv.style.fontFamily = style.fontFamily;
+
+        textDiv.textContent = geom.str;
+        textDiv.dataset.fontName = geom.fontName;
+        textDiv.dataset.angle = angle * (180 / Math.PI);
+        if (style.vertical) {
+          textDiv.dataset.canvasWidth = geom.height * this.viewport.scale;
+        } else {
+          textDiv.dataset.canvasWidth = geom.width * this.viewport.scale;
+        }
     },
 
-    renderLayer: function() {
-        var self = this;
+    setTextContent: function TextLayerBuilder_setTextContent(textContent) {
+      this.textContent = textContent;
+
+      var textItems = textContent.items;
+      for (var i = 0, len = textItems.length; i < len; i++) {
+        this.appendText(textItems[i], textContent.styles);
+      }
+      this.renderLayer();
+    },
+
+    renderLayer: function TextLayerBuilder_renderLayer() {
+        var textLayerFrag = document.createDocumentFragment();
         var textDivs = this.textDivs;
-        var bidiTexts = this.textContent;
-        var textLayerDiv = this.textLayerDiv;
         var canvas = document.createElement('canvas');
         var ctx = canvas.getContext('2d');
-        var textLayerFrag = document.createDocumentFragment();
 
         // No point in rendering so many divs as it'd make the browser unusable
         // even after the divs are rendered
         var MAX_TEXT_DIVS_TO_RENDER = 100000;
-        if (textDivs.length > MAX_TEXT_DIVS_TO_RENDER)
-            return;
+        if (textDivs.length > MAX_TEXT_DIVS_TO_RENDER) {
+          return;
+        }
 
         for (var i = 0, ii = textDivs.length; i < ii; i++) {
-            var textDiv = textDivs[i];
-            if ('isWhitespace' in textDiv.dataset) {
-                continue;
-            }
+          var textDiv = textDivs[i];
+          if ('isWhitespace' in textDiv.dataset) {
+            continue;
+          }
+
+          ctx.font = textDiv.style.fontSize + ' ' + textDiv.style.fontFamily;
+          var width = ctx.measureText(textDiv.textContent).width;
+
+          if (width > 0) {
             textLayerFrag.appendChild(textDiv);
-
-            ctx.font = textDiv.style.fontSize + ' ' + textDiv.style.fontFamily;
-            var width = ctx.measureText(textDiv.textContent).width;
-
-            if (width > 0) {
-                var textScale = textDiv.dataset.canvasWidth / width;
-
-                var transform = 'scale(' + textScale + ', 1)';
-                if (bidiTexts[i].dir === 'ttb') {
-                    transform = 'rotate(90deg) ' + transform;
-                }
-                CustomStyle.setProp('transform' , textDiv, transform);
-                CustomStyle.setProp('transformOrigin' , textDiv, '0% 0%');
-
-                textLayerDiv.appendChild(textDiv);
-            }
+            var textScale = textDiv.dataset.canvasWidth / width;
+            var rotation = textDiv.dataset.angle;
+            var transform = 'scale(' + textScale + ', 1)';
+            transform = 'rotate(' + rotation + 'deg) ' + transform;
+            CustomStyle.setProp('transform' , textDiv, transform);
+            CustomStyle.setProp('transformOrigin' , textDiv, '0% 0%');
+          }
         }
 
-        this.renderingDone = true;
-        //this.updateMatches();
-
-        textLayerDiv.appendChild(textLayerFrag);
+        this.textLayerDiv.appendChild(textLayerFrag);
     },
-
-    /*setupRenderLayoutTimer: function() {
-        // Schedule renderLayout() if user has been scrolling, otherwise
-        // run it right away
-        var RENDER_DELAY = 200; // in ms
-        var self = this;
-        if (Date.now() - PDFView.lastScroll > RENDER_DELAY) {
-            // Render right away
-            this.renderLayer();
-        } else {
-            // Schedule
-            if (this.renderTimer)
-                clearTimeout(this.renderTimer);
-            this.renderTimer = setTimeout(function() {
-                self.setupRenderLayoutTimer();
-            }, RENDER_DELAY);
-        }
-    }*/
 };
 
 return TextLayerBuilder;
