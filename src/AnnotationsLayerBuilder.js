@@ -53,11 +53,11 @@ AnnotationsLayerBuilder.prototype = {
             element.onclick = function(e) {
                 e.preventDefault()
                 listView.navigateTo(link.dest);
-            }
+            };
             // TODO
         }
     }
-}
+};
 
 return AnnotationsLayerBuilder;
 
