@@ -1,7 +1,7 @@
 pdfListView
 ===========
 
-*This is work in progress.*
+## NOTE: THIS REPO IS NO LONGER MAINTAINED, SEE: https://github.com/jviereck/pdfListView/issues/22
 
 A simple list view to render a PDF document using [PDF.JS](https://github.com/mozilla/pdf.js).
 
