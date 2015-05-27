@@ -462,22 +462,19 @@ PageView.prototype = {
         var viewport = this.viewport =
             this.page.pdfPage.getViewport(scale, this.rotation);
 
-        this.normalWidth = viewport.width / scale;
-        this.normalHeight = viewport.height / scale;
-
         // Only change the width/height property of the canvas if it really
         // changed. Every assignment to the width/height property clears the
         // content of the canvas.
         var newWidth = Math.floor(viewport.width);
         var newHeight = Math.floor(viewport.height);
-        if (this.canvas.width !== newWidth) {
+        if (this.canvas.width !== newWidth || this.canvas.height !== newHeight) {
             this.canvas.width = newWidth;
-            this.resetRenderState();
-        }
-        if (this.canvas.height !== newHeight) {
             this.canvas.height = newHeight;
             this.resetRenderState();
         }
+
+        this.normalWidth = viewport.width / scale;
+        this.normalHeight = viewport.height / scale;
 
         this.width = viewport.width;
         this.height = viewport.height;
